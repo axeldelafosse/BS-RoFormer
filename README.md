@@ -3,9 +3,27 @@
 - Inference script (modified from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training">ZFTurbo/Music-Source-Separation-Training</a>)
 - Partial MPS support (2x faster than CPU)
 
-Download the pre-trained model from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/tag/v1.0.12">ZFTurbo/Music-Source-Separation-Training</a>.
+### Install
 
-`python3 inference.py --model_type bs_roformer --start_check_point model_bs_roformer_ep_17_sdr_9.6568.ckpt --config_path config_bs_roformer_384_8_2_485100.yaml --input_folder input --output_folder output`
+Download the pre-trained model from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/tag/v1.0.12">ZFTurbo/Music-Source-Separation-Training</a> and put it in the `bs_roformer` folder.
+
+```bash
+$ python3 -m pip install -e .
+```
+
+### Run
+
+On a single file with the default arguments:
+
+```bash
+$ python3 -m bs_roformer.inference input.wav
+```
+
+Or on a folder with multiple files with custom arguments:
+
+```bash
+$ python3 -m bs_roformer.inference --model_type bs_roformer --start_check_point bs_roformer/model_bs_roformer_ep_17_sdr_9.6568.ckpt --config_path bs_roformer/config_bs_roformer_384_8_2_485100.yaml --input_folder input --output_folder output
+```
 
 ---
 

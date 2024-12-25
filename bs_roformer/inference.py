@@ -11,16 +11,13 @@ import torch
 import numpy as np
 import soundfile as sf
 import torch.nn as nn
-from utils import prefer_target_instrument
 
-# Using the embedded version of Python can also correctly import the utils module.
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
-from utils import demix, get_model_from_config
+from .utils import prefer_target_instrument, demix, get_model_from_config
 
 import warnings
 warnings.filterwarnings("ignore")
 
+PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run_folder(model, args, config, device, verbose=False):
     start_time = time.time()
@@ -120,12 +117,17 @@ def run_folder(model, args, config, device, verbose=False):
 
 
 def proc_folder(args):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", type=str, default='bs_roformer', help="bs_roformer or mel_band_roformer")
-    parser.add_argument("--config_path", type=str, default='config_bs_roformer_384_8_2_485100.yaml', help="path to config file")
-    parser.add_argument("--start_check_point", type=str, default='model_bs_roformer_ep_17_sdr_9.6568.ckpt', help="Initial checkpoint to valid weights")
-    parser.add_argument("--input_folder", type=str, default='input', help="folder with mixtures to process")
+    parser = argparse.ArgumentParser(description='BS-RoFormer Music Source Separation')
+    parser.add_argument("input_path", nargs='?', type=str, help="path to a single audio file to process (optional)")
+    parser.add_argument("--input_folder", type=str, help="folder with mixtures to process (ignored if input_path is provided)")
     parser.add_argument("--output_folder", default="output", type=str, help="path to store results as wav file")
+    parser.add_argument("--model_type", type=str, default='bs_roformer', help="bs_roformer or mel_band_roformer")
+    parser.add_argument("--config_path", type=str, 
+                       default=os.path.join(PACKAGE_DIR, 'config_bs_roformer_384_8_2_485100.yaml'), 
+                       help="path to config file")
+    parser.add_argument("--start_check_point", type=str, 
+                       default=os.path.join(PACKAGE_DIR, 'model_bs_roformer_ep_17_sdr_9.6568.ckpt'), 
+                       help="Initial checkpoint to valid weights")
     parser.add_argument("--device_ids", nargs='+', type=int, default=0, help='list of gpu ids')
     parser.add_argument("--extract_instrumental", action='store_true', help="invert vocals to get instrumental if provided")
     parser.add_argument("--disable_detailed_pbar", action='store_true', help="disable detailed progress bar")
@@ -137,6 +139,16 @@ def proc_folder(args):
         args = parser.parse_args()
     else:
         args = parser.parse_args(args)
+
+    # If single file is provided, create a temporary input folder with just that file
+    if args.input_path and os.path.isfile(args.input_path):
+        temp_input_folder = os.path.join(os.path.dirname(args.input_path), '.temp_input')
+        os.makedirs(temp_input_folder, exist_ok=True)
+        import shutil
+        shutil.copy2(args.input_path, temp_input_folder)
+        args.input_folder = temp_input_folder
+    elif not args.input_folder:
+        args.input_folder = 'input'  # default value if neither input_path nor input_folder is provided
 
     device = "cpu"
     if args.force_cpu:
@@ -168,7 +180,12 @@ def proc_folder(args):
 
     print("Model load time: {:.2f} sec".format(time.time() - model_load_start_time))
 
-    run_folder(model, args, config, device, verbose=True)
+    try:
+        run_folder(model, args, config, device, verbose=True)
+    finally:
+        # Clean up temporary folder if it was created
+        if args.input_path and os.path.exists(temp_input_folder):
+            shutil.rmtree(temp_input_folder)
 
 
 if __name__ == "__main__":
