@@ -23,6 +23,11 @@ setup(
     'librosa',
     'rotary-embedding-torch>=0.3.6',
     'torch>=2.0',
+    'packaging',
+    'tqdm',
+    'soundfile',
+    'pyyaml',
+    'ml_collections',
   ],
   classifiers=[
     'Development Status :: 4 - Beta',

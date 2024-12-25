@@ -1,3 +1,14 @@
+## Run BS-RoFormer on MPS
+
+- Inference script (modified from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training">ZFTurbo/Music-Source-Separation-Training</a>)
+- Partial MPS support (2x faster than CPU)
+
+Download the pre-trained model from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/tag/v1.0.12">ZFTurbo/Music-Source-Separation-Training</a>.
+
+`python3 inference.py --model_type bs_roformer --start_check_point model_bs_roformer_ep_17_sdr_9.6568.ckpt --config_path config_bs_roformer_384_8_2_485100.yaml --input_folder input --output_folder output`
+
+---
+
 <img src="./bs-roformer.png" width="450px"></img>
 
 ## BS-RoFormer
