@@ -6,7 +6,7 @@
 
 ### Install
 
-Download the pre-trained model from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/tag/v1.0.12">ZFTurbo/Music-Source-Separation-Training</a> and put it in the `bs_roformer` folder.
+You can download the pre-trained model from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/tag/v1.0.12">ZFTurbo/Music-Source-Separation-Training</a> and put it in the `bs_roformer` folder. It will be downloaded automatically if it is not found and no model is specified.
 
 ```bash
 $ python3 -m pip install -e .

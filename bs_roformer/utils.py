@@ -9,9 +9,13 @@ import torch.nn.functional as F
 from ml_collections import ConfigDict
 from tqdm.auto import tqdm
 from typing import Dict, List, Tuple
+import os
+import requests
+import shutil
 
 from bs_roformer import BSRoformer, MelBandRoformer
 
+PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def load_config(config_path: str) -> ConfigDict:
     """
@@ -678,3 +682,63 @@ def prefer_target_instrument(config: ConfigDict) -> List[str]:
         return [config.training.target_instrument]
     else:
         return config.training.instruments
+    
+def download_file(url: str, dest_path: str, chunk_size: int = 8192) -> None:
+    """
+    Download a file from a URL to a destination path, showing a progress bar.
+    """
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    
+    with open(dest_path, 'wb') as f, tqdm(
+        desc="Downloading model",
+        total=total_size,
+        unit='iB',
+        unit_scale=True,
+        unit_divisor=1024,
+    ) as pbar:
+        for data in response.iter_content(chunk_size=chunk_size):
+            size = f.write(data)
+            pbar.update(size)
+
+def ensure_model_exists(model_path: str) -> str:
+    """
+    Ensure the model file exists, downloading it if necessary.
+    Returns the path to the model file.
+    """
+    if model_path and os.path.exists(model_path):
+        return model_path
+        
+    # Define default model URL and filename
+    default_url = "https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/model_bs_roformer_ep_17_sdr_9.6568.ckpt"
+    default_filename = "model_bs_roformer_ep_17_sdr_9.6568.ckpt"
+    
+    # If no model specified, use default path in package directory
+    if not model_path:
+        model_path = os.path.join(PACKAGE_DIR, default_filename)
+    
+    # Download if model doesn't exist
+    if not os.path.exists(model_path):
+        print(f"Model not found at {model_path}")
+        print(f"Downloading default model from {default_url}")
+        
+        # Create temporary download directory
+        download_dir = os.path.join(PACKAGE_DIR, ".downloads")
+        os.makedirs(download_dir, exist_ok=True)
+        temp_path = os.path.join(download_dir, default_filename)
+        
+        try:
+            # Download the file
+            download_file(default_url, temp_path)
+            
+            # Move to final location
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            shutil.move(temp_path, model_path)
+            
+            print(f"Model downloaded successfully to {model_path}")
+        finally:
+            # Clean up temporary directory
+            if os.path.exists(download_dir):
+                shutil.rmtree(download_dir)
+    
+    return model_path

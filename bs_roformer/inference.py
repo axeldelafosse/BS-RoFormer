@@ -4,7 +4,6 @@ import argparse
 import time
 import librosa
 from tqdm.auto import tqdm
-import sys
 import os
 import glob
 import torch
@@ -12,12 +11,10 @@ import numpy as np
 import soundfile as sf
 import torch.nn as nn
 
-from .utils import prefer_target_instrument, demix, get_model_from_config
+from bs_roformer.utils import PACKAGE_DIR, prefer_target_instrument, demix, get_model_from_config, ensure_model_exists
 
 import warnings
 warnings.filterwarnings("ignore")
-
-PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run_folder(model, args, config, device, verbose=False):
     start_time = time.time()
@@ -212,9 +209,13 @@ def proc_folder(args):
     torch.backends.cudnn.benchmark = True
 
     model, config = get_model_from_config(args.model_type, args.config_path)
-    if args.start_check_point != '':
-        print('Start from checkpoint: {}'.format(args.start_check_point))
-        state_dict = torch.load(args.start_check_point, map_location=device, weights_only=True)
+    
+    # Ensure model exists and get path
+    model_path = ensure_model_exists(args.start_check_point)
+    
+    if model_path:
+        print('Start from checkpoint: {}'.format(model_path))
+        state_dict = torch.load(model_path, map_location=device, weights_only=True)
         model.load_state_dict(state_dict)
     print("Instruments: {}".format(config.training.instruments))
 

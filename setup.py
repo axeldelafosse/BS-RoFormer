@@ -29,6 +29,7 @@ setup(
     'soundfile',
     'pyyaml',
     'ml_collections',
+    'requests',
   ],
   classifiers=[
     'Development Status :: 4 - Beta',
