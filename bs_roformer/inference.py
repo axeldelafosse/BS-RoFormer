@@ -93,30 +93,28 @@ def run_folder(model, args, config, device, verbose=False):
         if args.lossless:
             # Step 1: Convert everything to tensors on the right device
             mix_orig_tensor = torch.tensor(mix_orig, device=device)
-            waveform_tensors = {instr: torch.tensor(waveforms[instr], device=device) 
-                               for instr in instruments}
+            waveform_tensors = {instr: torch.tensor(waveforms[instr], device=device) for instr in instruments}
             
             # Step 2: Calculate what's missing (the residual)
             sum_stems = sum(waveform_tensors[instr] for instr in instruments)
             residual = mix_orig_tensor - sum_stems
             
             # Step 3: Run the model again on just the residual
-            residual_np = residual.cpu().numpy()
-            residual_stems = demix(config, model, residual_np, device, 
-                                  pbar=detailed_pbar, model_type=args.model_type)
+            residual_stems = demix(config, model, residual, device, pbar=detailed_pbar, model_type=args.model_type)
+            residual_stems = {k: torch.tensor(v, device=device) for k, v in residual_stems.items()}
             
             # Distribute residual based on model's classification
             if 'drums' in instruments and 'other' in instruments:
                 # Get drums confidence from model's output
-                drums_ratio = np.sum(np.abs(residual_stems['drums'])) / (
-                    np.sum(np.abs(residual_stems['drums'])) + np.sum(np.abs(residual_stems['other']))
+                drums_ratio = torch.sum(torch.abs(residual_stems['drums'])) / (
+                    torch.sum(torch.abs(residual_stems['drums'])) + torch.sum(torch.abs(residual_stems['other']))
                 )
                 
                 # Hybrid approach:
                 # 1. Use model's separated stems for the clear drum/other content
                 # 2. Use ratio-based distribution for the ambiguous content
-                drums_residual = torch.tensor(residual_stems['drums'], device=device)
-                other_residual = torch.tensor(residual_stems['other'], device=device)
+                drums_residual = residual_stems['drums']
+                other_residual = residual_stems['other']
                 
                 # Calculate remaining ambiguous content
                 ambiguous_residual = residual - (drums_residual + other_residual)
