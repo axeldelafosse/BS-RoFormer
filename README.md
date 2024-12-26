@@ -9,7 +9,7 @@
 You can download the pre-trained model from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/tag/v1.0.12">ZFTurbo/Music-Source-Separation-Training</a> and put it in the `bs_roformer` folder. It will be downloaded automatically if it is not found and no model is specified.
 
 ```bash
-$ python3 -m pip install -e .
+$ python3 -m pip install Lossless-BS-RoFormer
 ```
 
 ### Run
@@ -53,7 +53,7 @@ To use lossless mode, simply add the `--lossless` flag to your command:
 $ python3 -m bs_roformer --lossless input.wav
 ```
 
-Note that this will run the model twice, so it will be 2x slower than the default mode.
+Note that this will run the model twice, so it will be 2x slower than the original mode. You can disable lossless mode by using the `--disable-lossless` flag.
 
 ---
 

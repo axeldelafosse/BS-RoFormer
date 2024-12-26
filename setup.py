@@ -1,16 +1,16 @@
 from setuptools import setup, find_packages
 
 setup(
-  name = 'BS-RoFormer',
+  name = 'Lossless-BS-RoFormer',
   packages = find_packages(exclude=[]),
-  package_data={'bs_roformer': ['*.yaml', '*.ckpt']},
-  version = '0.5.1',
+  package_data={'bs_roformer': ['*.yaml']},
+  version = '1.0.0',
   license='MIT',
-  description = 'BS-RoFormer - Band-Split Rotary Transformer for SOTA Music Source Separation',
-  author = 'Phil Wang',
-  author_email = 'lucidrains@gmail.com',
+  description = 'Lossless BS-RoFormer - Band-Split Rotary Transformer for SOTA Music Source Separation',
+  author = 'Axel Delafosse',
+  author_email = 'axeldelafosse@gmail.com',
   long_description_content_type = 'text/markdown',
-  url = 'https://github.com/lucidrains/BS-RoFormer',
+  url = 'https://github.com/axeldelafosse/BS-RoFormer',
   keywords = [
     'artificial intelligence',
     'deep learning',
