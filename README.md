@@ -1,6 +1,7 @@
-## Run BS-RoFormer on MPS
+## Lossless BS-RoFormer
 
 - Inference script (modified from <a href="https://github.com/ZFTurbo/Music-Source-Separation-Training">ZFTurbo/Music-Source-Separation-Training</a>)
+- Lossless mode (no audio content is lost in the separation process)
 - Partial MPS support (2x faster than CPU)
 
 ### Install
@@ -16,14 +17,43 @@ $ python3 -m pip install -e .
 On a single file with the default arguments:
 
 ```bash
-$ python3 -m bs_roformer.inference input.wav
+$ python3 -m bs_roformer input.wav
 ```
 
 Or on a folder with multiple files with custom arguments:
 
 ```bash
-$ python3 -m bs_roformer.inference --model_type bs_roformer --start_check_point bs_roformer/model_bs_roformer_ep_17_sdr_9.6568.ckpt --config_path bs_roformer/config_bs_roformer_384_8_2_485100.yaml --input_folder input --output_folder output
+$ python3 -m bs_roformer --model_type bs_roformer --start_check_point bs_roformer/model_bs_roformer_ep_17_sdr_9.6568.ckpt --config_path bs_roformer/config_bs_roformer_384_8_2_485100.yaml --input_folder input --output_folder output
 ```
+
+## Lossless mode
+
+The `--lossless` flag enables perfect reconstruction of the original mix by intelligently distributing any residual content back into the stems. This ensures that when all stems are summed together, they exactly match the input mix.
+
+By default, music source separation can be slightly lossy -- the sum of the separated stems may not perfectly equal the original mix due to model limitations. The lossless mode addresses this by:
+
+1. Calculating the residual (difference between original mix and sum of stems)
+2. Running the model again on this residual to classify its content
+3. Using a hybrid approach to distribute the residual:
+   - Clear drum/percussion content goes to the drums stem
+   - Clear musical/harmonic content goes to the other stem
+   - Ambiguous content is distributed proportionally based on the energy ratio
+
+This results in:
+
+- Perfect reconstruction when stems are summed
+- Musically appropriate distribution of residual content
+- Minimal impact on separation quality of primary elements
+
+### Usage
+
+To use lossless mode, simply add the `--lossless` flag to your command:
+
+```bash
+$ python3 -m bs_roformer --lossless input.wav
+```
+
+Note that this will run the model twice, so it will be 2x slower than the default mode.
 
 ---
 

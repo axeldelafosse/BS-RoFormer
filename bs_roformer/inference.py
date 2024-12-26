@@ -89,7 +89,51 @@ def run_folder(model, args, config, device, verbose=False):
         for el in waveforms:
             waveforms[el] = waveforms[el] / len(full_result)
 
-        # Create a new `instr` in instruments list, 'instrumental' 
+        # Calculate residual if lossless mode is enabled
+        if args.lossless:
+            # Step 1: Convert everything to tensors on the right device
+            mix_orig_tensor = torch.tensor(mix_orig, device=device)
+            waveform_tensors = {instr: torch.tensor(waveforms[instr], device=device) 
+                               for instr in instruments}
+            
+            # Step 2: Calculate what's missing (the residual)
+            sum_stems = sum(waveform_tensors[instr] for instr in instruments)
+            residual = mix_orig_tensor - sum_stems
+            
+            # Step 3: Run the model again on just the residual
+            residual_np = residual.cpu().numpy()
+            residual_stems = demix(config, model, residual_np, device, 
+                                  pbar=detailed_pbar, model_type=args.model_type)
+            
+            # Distribute residual based on model's classification
+            if 'drums' in instruments and 'other' in instruments:
+                # Get drums confidence from model's output
+                drums_ratio = np.sum(np.abs(residual_stems['drums'])) / (
+                    np.sum(np.abs(residual_stems['drums'])) + np.sum(np.abs(residual_stems['other']))
+                )
+                
+                # Hybrid approach:
+                # 1. Use model's separated stems for the clear drum/other content
+                # 2. Use ratio-based distribution for the ambiguous content
+                drums_residual = torch.tensor(residual_stems['drums'], device=device)
+                other_residual = torch.tensor(residual_stems['other'], device=device)
+                
+                # Calculate remaining ambiguous content
+                ambiguous_residual = residual - (drums_residual + other_residual)
+                
+                # Add clear content plus ratio-weighted ambiguous content
+                waveforms['drums'] = (waveform_tensors['drums'] + 
+                                    drums_residual + 
+                                    ambiguous_residual * drums_ratio).cpu().numpy()
+                waveforms['other'] = (waveform_tensors['other'] + 
+                                    other_residual + 
+                                    ambiguous_residual * (1 - drums_ratio)).cpu().numpy()
+            elif instruments:
+                # Fallback: add to first stem if neither drums nor other exists
+                first_stem = instruments[0]
+                waveforms[first_stem] = (waveform_tensors[first_stem] + residual).cpu().numpy()
+
+        # Create a new `instr` in instruments list, 'instrumental'
         if args.extract_instrumental:
             instr = 'vocals' if 'vocals' in instruments else instruments[0]
             if 'instrumental' not in instruments:
@@ -135,6 +179,7 @@ def proc_folder(args):
     parser.add_argument("--flac_file", action = 'store_true', help="Output flac file instead of wav")
     parser.add_argument("--pcm_type", type=str, choices=['PCM_16', 'PCM_24', 'FLOAT'], default='PCM_16', help="PCM type for WAVE OR FLAC files (PCM_16 or PCM_24)")
     parser.add_argument("--use_tta", action='store_true', help="Flag adds test time augmentation during inference (polarity and channel inverse). While this triples the runtime, it reduces noise and slightly improves prediction quality.")
+    parser.add_argument("--lossless", action='store_true', help="Enable lossless mode - adds residual difference back to drums/other stems to preserve all audio content")
     if args is None:
         args = parser.parse_args()
     else:
@@ -149,6 +194,9 @@ def proc_folder(args):
         args.input_folder = temp_input_folder
     elif not args.input_folder:
         args.input_folder = 'input'  # default value if neither input_path nor input_folder is provided
+
+    if args.lossless:
+        print("Lossless mode enabled")
 
     device = "cpu"
     if args.force_cpu:
